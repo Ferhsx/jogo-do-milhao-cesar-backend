@@ -1,0 +1,42 @@
+{
+  "name": "game-cesar",
+  "version": "0.1.0",
+  "description": "BackEnd para site educativo",
+  "keywords": [
+    "game",
+    "web"
+  ],
+  "homepage": "https://github.com/Ferhsx/jogo-do-milhao-cesar-backend#readme",
+  "bugs": {
+    "url": "https://github.com/Ferhsx/jogo-do-milhao-cesar-backend/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ferhsx/jogo-do-milhao-cesar-backend.git"
+  },
+  "license": "MIT",
+  "author": "Elitinho123456",
+  "type": "module",
+  "main": "server.ts",
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "dev": "tsx watch src/server.ts",
+    "build": "tsx build",
+    "create-admin": "tsx createFirstAdmin.ts",
+    "test": "debug"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/express": "^5.0.5",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^24.10.1",
+    "tsx": "^4.20.6"
+  }
+}
