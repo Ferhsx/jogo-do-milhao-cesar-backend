@@ -13,12 +13,10 @@ O sistema é composto por um backend que é responsável por gerenciar as requis
 ##Tecnologias Utilizadas:
 - Node.js
 - TypeScript
+- Json Web Token
+- Bcrypt
 - Express
-- Sequelize
-- MySQL
-- Jest
-- Docker
-- Docker Compose
+- mongoDB
 - Git
 - GitHub
 
