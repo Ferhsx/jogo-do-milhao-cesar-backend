@@ -18,6 +18,11 @@ class AdmController {
             return res.status(500).json({ message: "Erro ao buscar questões." });
 
         }
+    }
+
+    public createQuestion = async (req: Request, res: Response) => {
+        try {
+
             const question = await Question.create(req.body);
             return res.status(201).json(question);
 
