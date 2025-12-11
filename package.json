@@ -19,24 +19,28 @@
   "type": "module",
   "main": "server.ts",
   "scripts": {
-    "start": "tsx src/server.ts",
-    "dev": "tsx watch src/server.ts",
+    "start": "tsx server.ts",
+    "dev": "tsx watch server.ts",
     "build": "tsx build",
-    "create-admin": "tsx createFirstAdmin.ts",
     "test": "debug"
   },
   "dependencies": {
+    "@google/genai": "^1.33.0",
     "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
-    "mongodb": "^7.0.0"
+    "mongodb": "^7.0.0",
+    "mongoose": "^9.0.1"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.5",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^24.10.1",
+    "@types/mongoose": "^5.11.96",
+    "@types/node": "^24.10.3",
     "tsx": "^4.20.6"
   }
 }

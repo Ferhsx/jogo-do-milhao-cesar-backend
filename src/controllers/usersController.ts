@@ -1,114 +1,62 @@
 import { Request, Response } from 'express';
-import db from '../repositories/connectionDB';
-import { User, LoginCredentials } from '../models/userStructure';
+import User, { IUser } from '../models/userStructure';
 import { secureHash, verifyPassword } from '../middlewares/securePassword';
 import jwt from 'jsonwebtoken';
 
-const jwtSecret = String(process.env.JWT_SECRET);
-
-if (!process.env.JWT_SECRET) {
-    throw new Error('FATAL: JWT_SECRET environment variable is not defined.');
-}
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-const PASS_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,128}$/;
+const jwtSecret = process.env.JWT_SECRET || 'secret_dev_key';
 
 class UsersController {
-    
-    constructor() {}
 
-    public addUser = async (req: Request, res: Response) => {
+    // Login
+    public loginUser = async (req: Request, res: Response) => {
+        const { email, password } = req.body;
+
         try {
-            const { name, email, password, role } = req.body;
 
-            if (!name || !email || !password || !role) {
-                return res.status(400).json({ message: 'All fields are required.' });
-            }
+            const user = await User.findOne({ email });
+            if (!user) return res.status(401).json({ message: 'Credenciais inválidas.' });
 
-            if (!EMAIL_REGEX.test(email)) {
-                return res.status(400).json({ message: 'Invalid email format.' });
-            }
+            const match = await verifyPassword(password, user.password);
+            if (!match) return res.status(401).json({ message: 'Credenciais inválidas.' });
 
-            if (!PASS_REGEX.test(password)) {
-                return res.status(400).json({
-                    message: 'Password must be 8-128 chars, include uppercase, lowercase, number and special char.'
-                });
-            }
+            const token = jwt.sign(
+                { id: user._id, role: user.role, name: user.username },
+                jwtSecret,
+                { expiresIn: '8h' }
+            );
 
-            if (role === 'admin') {
-                return res.status(403).json({ message: 'Cannot create admin users through this endpoint.' });
-            }
-
-            if (!db) {
-                console.error('Database connection failed.');
-                return res.status(503).json({ message: 'Service unavailable.' });
-            }
-
-            const existingUser = await db.collection('users').findOne({ email });
-            if (existingUser) {
-                return res.status(409).json({ message: 'User with this email already exists.' });
-            }
-
-            const hashedPassword = await secureHash(password);
-
-            const newUser: User = {
-                name,
-                email,
-                password: hashedPassword,
-                role,
-                createdAt: new Date(),
-                isBlocked: false
-            };
-
-            const result = await db.collection('users').insertOne(newUser);
-
-            return res.status(201).json({
-                message: 'User created successfully.',
-                userId: result.insertedId
-            });
+            return res.status(200).json({ token, user: { name: user.username, email: user.email } });
 
         } catch (error) {
-            console.error('Error adding user:', error);
-            return res.status(500).json({ message: 'Internal server error.' });
+
+            return res.status(500).json({ message: 'Erro no servidor' });
+
         }
     }
 
-    public loginUser = async (req: Request, res: Response) => {
-        const { email, password }: LoginCredentials = req.body;
-
-        if (!email || !password) {
-            return res.status(400).json({ message: 'Email and password are required.' });
-        }
-
+    // Register (Apenas admins podem criar admins via API ou rota inicial)
+    public addUser = async (req: Request, res: Response) => {
         try {
-            if (!db) {
-                return res.status(503).json({ message: 'Service unavailable.' });
-            }
+            const { name, email, password } = req.body;
 
-            const user = await db.collection('users').findOne({ email });
+            const existing = await User.findOne({ email });
+            if (existing) return res.status(400).json({ message: "Email já cadastrado." });
 
-            if (!user) {
-                return res.status(401).json({ message: 'Invalid email or password.' });
-            }
+            const hashedPassword = await secureHash(password);
 
-            const passwordMatch = await verifyPassword(password, user.password);
+            const newUser = await User.create({
+                username: name,
+                email,
+                password: hashedPassword,
+                role: 'admin'
+            });
 
-            if (!passwordMatch) {
-                return res.status(401).json({ message: 'Invalid email or password.' });
-            }
-
-            const token = jwt.sign(
-                { userId: user._id, role: user.role }, 
-                jwtSecret, 
-                { expiresIn: '1h' }
-            );
-            
-            return res.status(200).json({ message: 'Login successful.', token });
+            return res.status(201).json({ message: "Professor criado com sucesso.", id: newUser._id });
 
         } catch (error) {
-            console.error('Error logging in user:', error);
-            return res.status(500).json({ message: 'Internal server error.' });
+
+            return res.status(500).json({ message: 'Erro ao criar usuário', error });
+            
         }
     }
 }

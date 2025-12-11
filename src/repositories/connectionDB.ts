@@ -1,24 +1,16 @@
-// Default imports
-import { MongoClient } from 'mongodb';
-
-// Environment variables
+import mongoose from 'mongoose';
 import 'dotenv/config';
 
-const uri = process.env.MONGO_URI;
-const dbName = process.env.MONGO_DB;
+const uri = process.env.MONGO_URI || 'mongodb://localhost:27017/quizGame';
 
-const client = new MongoClient(uri || 'mongodb://localhost:27017/');
-const db = client.db(dbName || 'bancoTeste');
+const connectDB = async () => {
+    try {
+        await mongoose.connect(uri);
+        console.log('Connected to MongoDB via Mongoose');
+    } catch (error) {
+        console.error('Error connecting to MongoDB:', error);
+        process.exit(1);
+    }
+};
 
-try {
-    
-    await client.connect();
-    console.log('Connected to MongoDB');
-    
-} catch (error) {
-
-    console.error('Error connecting to MongoDB:', error);
-
-}
-
-export default db;
+export default connectDB;

@@ -1,23 +1,19 @@
-// Estruturas de dados que representam as tabelas do banco de dados de usuários.
+import mongoose, { Schema, Document } from 'mongoose';
 
-export interface User {
-    id?: string;
-    name: string;
+export interface IUser extends Document {
+    username: string;
     email: string;
     password: string;
-    role: 'admin' | 'user';
+    role: 'admin';
     createdAt: Date;
-    isBlocked?: boolean;
 }
 
-export interface UserWithoutPassword {
-    id?: string;
-    name: string;
-    email: string;
-    role: 'admin' | 'user';
-}
+const UserSchema: Schema = new Schema({
+    username: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    role: { type: String, default: 'admin' },
+    createdAt: { type: Date, default: Date.now }
+});
 
-export interface LoginCredentials {
-    email: string;
-    password: string;
-}
+export default mongoose.model<IUser>('User', UserSchema);
