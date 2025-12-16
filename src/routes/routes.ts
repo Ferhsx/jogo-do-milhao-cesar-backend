@@ -19,6 +19,7 @@ router.get('/themes', verifyToken, admController.getAllThemes);
 router.get('/config', verifyToken, admController.getConfig);
 router.post('/config', verifyToken, admController.saveConfig);
 router.post('/admin/reset', verifyToken, admController.resetHistory);
+router.post('/rooms', verifyToken, admController.createRoom);
 
 // Game (Público - Aluno)
 router.post('/game/start', gameController.start);

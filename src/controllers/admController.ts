@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import Question from '../models/Questions';
 import GameConfig from '../models/GameConfig';
 import PlayerSession from '../models/PlayerSession';
+import Room from '../models/Room';
 
 class AdmController {
 
@@ -98,7 +99,7 @@ class AdmController {
         } catch (error) {
 
             return res.status(500).json({ message: "Erro ao salvar config." });
-            
+
         }
     }
 
@@ -111,6 +112,27 @@ class AdmController {
 
         } catch (error) {
             return res.status(500).json({ message: "Erro ao resetar." });
+        }
+    }
+
+    public createRoom = async (req: Request, res: Response) => {
+        try {
+            const userId = (req as any).user.id;
+            const { config } = req.body; // O professor envia a config desejada
+
+            // Gera PIN de 6 dígitos
+            const pin = Math.floor(100000 + Math.random() * 900000).toString();
+
+            const room = await Room.create({
+                pin,
+                professorId: userId,
+                config: config // Salva o "snapshot" da configuração atual
+            });
+
+            return res.status(201).json({ success: true, pin, roomId: room._id });
+
+        } catch (error) {
+            return res.status(500).json({ message: "Erro ao criar sala." });
         }
     }
 }

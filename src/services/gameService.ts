@@ -3,6 +3,7 @@ import PlayerSession, { IPlayerSession } from '../models/PlayerSession';
 import GameConfig from '../models/GameConfig';
 import { GoogleGenAI } from "@google/genai";
 import mongoose from 'mongoose';
+import Room from '../models/Room';
 
 // Mapeamento de nível numérico para string de dificuldade
 const difficultyMap: Record<number, string> = {
@@ -17,20 +18,33 @@ const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY || 'API_KEY_NOT_
 
 export class GameService {
 
-    public async startGame() {
+    public async startGame(pin: string, nickname: string) {
 
-        const session = await PlayerSession.create({});
+        const room = await Room.findOne({ pin, isActive: true });
+        if (!room) throw new Error("Sala não encontrada ou encerrada.");
 
+        // 2. Cria a sessão vinculada à sala
+        const session = await PlayerSession.create({
+            roomId: room._id,
+            nickname: nickname
+        });
+
+        // 3. Busca pergunta baseada na config DA SALA
         const question = await this.getNextQuestion(session);
 
         return { sessionStr: session._id, question, level: session.nivel_atual, score: session.pontuacao_atual };
-
     }
 
     public async getNextQuestion(session: IPlayerSession) {
 
-        const config = await GameConfig.findOne() || { temas_ativos: [], permitir_repeticao: false };
+        // 1. Busca a SALA da sessão para ler as regras DELA
+        const room = await Room.findById(session.roomId);
+        if (!room) throw new Error("Sala da sessão não encontrada.");
 
+        const config = room.config; // USA A CONFIG DA SALA, NÃO A GLOBAL
+
+        // ... O resto da lógica de buscar questão continua igual, 
+        // mas agora 'config' vem da variável acima.
         const difficulty = difficultyMap[session.nivel_atual];
 
         let query: any = {
@@ -178,8 +192,64 @@ export class GameService {
             result = { remove: toEliminate };
 
         } else if (type === 'plateia') {
+            // Lógica de probabilidade da plateia baseada na dificuldade
+            const diff = question.dificuldade || 'medio';
+            const allAlts = [question.alternativa_correta, ...question.alternativas_incorretas];
 
-            result = { message: "Consulte a plateia para ajuda." };
+            // Definição das chances de a plateia acertar (peso na correta)
+            let correctWeight = 0;
+
+            switch (diff) {
+                case 'muito_facil': correctWeight = 0.90; break; // 90% de chance de ir na certa
+                case 'facil': correctWeight = 0.75; break;
+                case 'medio': correctWeight = 0.55; break;
+                case 'dificil': correctWeight = 0.40; break; // Plateia começa a duvidar
+                case 'muito_dificil': correctWeight = 0.25; break; // Quase chute (chute seria 25% em 4 alts)
+                default: correctWeight = 0.50;
+            }
+
+            // Gera votos
+            // Vamos distribuir 100 pontos
+            const totalPoints = 100;
+            const correctVotes = Math.floor(totalPoints * correctWeight); // Ex: 75 votos
+
+            let accumulated = correctVotes;
+            const incorrectVotesDistribution: number[] = [];
+
+            // Distribui o resto aleatoriamente entre as incorretas
+            const numIncorrect = question.alternativas_incorretas.length;
+            let remainingPoints = totalPoints - correctVotes;
+
+            for (let i = 0; i < numIncorrect; i++) {
+                if (i === numIncorrect - 1) {
+                    incorrectVotesDistribution.push(remainingPoints);
+                } else {
+                    const val = Math.floor(Math.random() * remainingPoints);
+                    incorrectVotesDistribution.push(val);
+                    remainingPoints -= val;
+                }
+            }
+
+            // Cria o resultado final (mapeando texto -> votos)
+            const votes: Record<string, number> = {};
+            votes[question.alternativa_correta] = correctVotes;
+
+            question.alternativas_incorretas.forEach((alt, idx) => {
+                votes[alt] = incorrectVotesDistribution[idx];
+            });
+
+            // Formata mensagem bonitinha
+            // Ordena por maior voto para ficar mais legível ou deixa misturado? 
+            // Melhor mostrar: "Alternativa X: Y%"
+
+            // Como não sabemos a ordem A/B/C/D do front, mandamos o texto por enquanto.
+            // O ideal seria o front receber um objeto estruturado, mas vamos manter compatibilidade com msg string.
+
+            const votesStr = Object.entries(votes)
+                .map(([alt, count]) => `"${alt}": ${count}%`)
+                .join(' | ');
+
+            result = { message: `Votação da Plateia: ${votesStr}` };
 
         } else if (type === 'chat') {
 

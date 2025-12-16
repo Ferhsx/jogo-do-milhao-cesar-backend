@@ -1,6 +1,8 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IPlayerSession extends Document {
+    roomId: mongoose.Types.ObjectId;
+    nickname: string;
     pontuacao_atual: number;
     nivel_atual: number; // 1 a 5
     rodada_no_nivel: number; // 1 a 3 (são 3 perguntas por nível)
@@ -16,6 +18,8 @@ export interface IPlayerSession extends Document {
 }
 
 const PlayerSessionSchema: Schema = new Schema({
+    roomId: { type: Schema.Types.ObjectId, ref: 'Room', required: true }, // <--- NOVO
+    nickname: { type: String, required: true },
     pontuacao_atual: { type: Number, default: 0 },
     nivel_atual: { type: Number, default: 1 },
     rodada_no_nivel: { type: Number, default: 1 },

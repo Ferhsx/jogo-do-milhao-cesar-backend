@@ -6,7 +6,13 @@ class GameController {
     public start = async (req: Request, res: Response) => {
         try {
 
-            const result = await gameService.startGame();
+            const { pin, nickname } = req.body;
+
+            if (!pin || !nickname) {
+                return res.status(400).json({ message: "PIN e nickname são obrigatórios." });
+            }
+
+            const result = await gameService.startGame(pin, nickname);
 
             if (!result.question) {
                 return res.status(404).json({ message: "Nenhuma questão encontrada para os critérios atuais." });
