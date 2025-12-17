@@ -3,10 +3,25 @@ import Question from '../models/Questions';
 import GameConfig from '../models/GameConfig';
 import PlayerSession from '../models/PlayerSession';
 import Room from '../models/Room';
+import importService from '../services/importService';
 
 class AdmController {
 
     // Questões
+    
+    public importQuestions = async (req: Request, res: Response) => {
+        try {
+            const { text } = req.body;
+            if (!text) return res.status(400).json({ message: "Texto não fornecido." });
+
+            const parsed = importService.parseQuestions(text);
+            const count = await importService.saveQuestions(parsed);
+
+            return res.json({ success: true, count, message: `${count} questões importadas com sucesso.` });
+        } catch (error) {
+            return res.status(500).json({ message: "Erro ao importar questões.", error });
+        }
+    }
 
     public getQuestions = async (req: Request, res: Response) => {
         try {

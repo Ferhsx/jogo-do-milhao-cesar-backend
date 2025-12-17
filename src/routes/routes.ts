@@ -14,6 +14,7 @@ router.get('/questions', verifyToken, admController.getQuestions);
 router.post('/questions', verifyToken, admController.createQuestion);
 router.put('/questions/:id', verifyToken, admController.updateQuestion);
 router.delete('/questions/:id', verifyToken, admController.deleteQuestion);
+router.post('/questions/import', verifyToken, admController.importQuestions);
 router.get('/themes', verifyToken, admController.getAllThemes);
 
 router.get('/config', verifyToken, admController.getConfig);

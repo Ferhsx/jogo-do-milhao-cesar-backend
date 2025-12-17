@@ -93,7 +93,9 @@ export class GameService {
         const question = await Question.findById(questionId);
         if (!question) throw new Error("Questão não encontrada.");
 
-        const config = await GameConfig.findOne();
+        // CORREÇÃO: Busca a config da SALA, e não a global
+        const room = await Room.findById(session.roomId);
+        const config = room?.config;
         const mode = config?.modo_de_jogo || 'classico';
 
         const isCorrect = question.alternativa_correta === answer;
@@ -147,8 +149,24 @@ export class GameService {
         let nextQuestion = null;
         if (!gameOver) {
             nextQuestion = await this.getNextQuestion(session);
+
+            // LOGICA INTELIGENTE: Se não houver perguntas no nível atual, avança para o próximo
+            // até encontrar uma pergunta ou chegar no nível máximo.
+            while (!nextQuestion && session.nivel_atual < 5) {
+                console.log(`Sem perguntas no nível ${session.nivel_atual}. Avançando para nível ${session.nivel_atual + 1}...`);
+                session.nivel_atual++;
+                session.rodada_no_nivel = 1; // Reseta rodada para o novo nível
+
+                nextQuestion = await this.getNextQuestion(session);
+
+                // Se encontrou pergunta ao pular de nível, salva o novo estado da sessão (nível atualizado)
+                if (nextQuestion) {
+                    await session.save();
+                }
+            }
+
             if (!nextQuestion) {
-                // Caso acabem as perguntas do banco
+                // Caso acabem as perguntas do banco (mesmo após tentar avançar)
                 gameOver = true;
                 session.status = 'vitoria';
                 feedback = "Não há mais perguntas disponíveis no banco!";
