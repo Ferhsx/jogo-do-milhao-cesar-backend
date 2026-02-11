@@ -42,6 +42,7 @@ export class GameService {
         if (!room) throw new Error("Sala da sessão não encontrada.");
 
         const config = room.config; // USA A CONFIG DA SALA, NÃO A GLOBAL
+        const professorId = room.professorId; // ID do professor que criou a sala
 
         // ... O resto da lógica de buscar questão continua igual, 
         // mas agora 'config' vem da variável acima.
@@ -49,6 +50,7 @@ export class GameService {
 
         let query: any = {
             dificuldade: difficulty,
+            createdBy: professorId, // FILTRA PELO PROFESSOR DONO DA SALA
             tema: { $in: config.temas_ativos }
         };
 

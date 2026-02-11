@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import gameService from '../services/gameService';
 
 class GameController {
-    
+
     public start = async (req: Request, res: Response) => {
         try {
 
@@ -15,7 +15,7 @@ class GameController {
             const result = await gameService.startGame(pin, nickname);
 
             if (!result.question) {
-                return res.status(404).json({ message: "Nenhuma questão encontrada para os critérios atuais." });
+                return res.status(400).json({ message: "Nenhuma questão encontrada para os critérios atuais." });
             }
 
             return res.json(result);
@@ -50,9 +50,9 @@ class GameController {
             return res.json(result);
 
         } catch (error: any) {
-            
+
             return res.status(400).json({ message: error.message });
-            
+
         }
     }
 }

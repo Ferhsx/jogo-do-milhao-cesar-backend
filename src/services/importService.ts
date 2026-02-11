@@ -85,7 +85,7 @@ class ImportService {
         return 'medio'; // Default
     }
 
-    public async saveQuestions(parsedQuestions: ParsedQuestion[]) {
+    public async saveQuestions(parsedQuestions: ParsedQuestion[], userId: string) {
         let count = 0;
         for (const q of parsedQuestions) {
             // Cria nova questão
@@ -94,7 +94,8 @@ class ImportService {
                 tema: q.tema,
                 dificuldade: q.dificuldade,
                 alternativa_correta: q.alternativa_correta,
-                alternativas_incorretas: q.alternativas_incorretas
+                alternativas_incorretas: q.alternativas_incorretas,
+                createdBy: userId
             });
             count++;
         }

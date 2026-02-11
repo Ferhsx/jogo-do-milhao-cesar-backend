@@ -8,14 +8,15 @@ import importService from '../services/importService';
 class AdmController {
 
     // Questões
-    
+
     public importQuestions = async (req: Request, res: Response) => {
         try {
             const { text } = req.body;
             if (!text) return res.status(400).json({ message: "Texto não fornecido." });
 
+            const userId = (req as any).user.id;
             const parsed = importService.parseQuestions(text);
-            const count = await importService.saveQuestions(parsed);
+            const count = await importService.saveQuestions(parsed, userId);
 
             return res.json({ success: true, count, message: `${count} questões importadas com sucesso.` });
         } catch (error) {
@@ -26,7 +27,8 @@ class AdmController {
     public getQuestions = async (req: Request, res: Response) => {
         try {
 
-            const questions = await Question.find().sort({ createdAt: -1 });
+            const userId = (req as any).user.id;
+            const questions = await Question.find({ createdBy: userId }).sort({ createdAt: -1 });
             return res.json(questions);
 
         } catch (error) {
@@ -39,7 +41,9 @@ class AdmController {
     public createQuestion = async (req: Request, res: Response) => {
         try {
 
-            const question = await Question.create(req.body);
+            const userId = (req as any).user.id;
+            const questionData = { ...req.body, createdBy: userId };
+            const question = await Question.create(questionData);
             return res.status(201).json(question);
 
         } catch (error) {
@@ -52,8 +56,14 @@ class AdmController {
     public updateQuestion = async (req: Request, res: Response) => {
         try {
 
+            const userId = (req as any).user.id;
             const { id } = req.params;
-            const updated = await Question.findByIdAndUpdate(id, req.body, { new: true });
+            const updated = await Question.findOneAndUpdate(
+                { _id: id, createdBy: userId },
+                req.body,
+                { new: true }
+            );
+            if (!updated) return res.status(404).json({ message: "Questão não encontrada ou sem permissão." });
             return res.json(updated);
 
         } catch (error) {
@@ -64,8 +74,10 @@ class AdmController {
     public deleteQuestion = async (req: Request, res: Response) => {
         try {
 
+            const userId = (req as any).user.id;
             const { id } = req.params;
-            await Question.findByIdAndDelete(id);
+            const deleted = await Question.findOneAndDelete({ _id: id, createdBy: userId });
+            if (!deleted) return res.status(404).json({ message: "Questão não encontrada ou sem permissão." });
             return res.status(204).send();
 
         } catch (error) {
@@ -78,7 +90,8 @@ class AdmController {
     public getAllThemes = async (req: Request, res: Response) => {
         try {
 
-            const themes = await Question.distinct('tema');
+            const userId = (req as any).user.id;
+            const themes = await Question.distinct('tema', { createdBy: userId });
             return res.json(themes);
 
         } catch (error) {

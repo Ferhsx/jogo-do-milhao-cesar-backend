@@ -8,20 +8,22 @@ export interface IQuestion extends Document {
     alternativas_incorretas: string[];
     alternativas_para_eliminar?: string[]; // Para a ajuda "Eliminar"
     createdAt: Date;
+    createdBy: string;
 }
 
 const QuestionSchema: Schema = new Schema({
     enunciado: { type: String, required: true },
     tema: { type: String, required: true },
-    dificuldade: { 
-        type: String, 
+    dificuldade: {
+        type: String,
         enum: ['muito_facil', 'facil', 'medio', 'dificil', 'muito_dificil'],
-        required: true 
+        required: true
     },
     alternativa_correta: { type: String, required: true },
     alternativas_incorretas: { type: [String], required: true },
     alternativas_para_eliminar: { type: [String], default: [] },
-    createdAt: { type: Date, default: Date.now }
+    createdAt: { type: Date, default: Date.now },
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true }
 });
 
 export default mongoose.model<IQuestion>('Question', QuestionSchema);
