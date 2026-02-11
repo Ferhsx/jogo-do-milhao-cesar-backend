@@ -4,6 +4,7 @@ import GameConfig from '../models/GameConfig';
 import { GoogleGenAI } from "@google/genai";
 import mongoose from 'mongoose';
 import Room from '../models/Room';
+import Ranking from '../models/Ranking';
 
 // Mapeamento de nível numérico para string de dificuldade
 const difficultyMap: Record<number, string> = {
@@ -32,7 +33,24 @@ export class GameService {
         // 3. Busca pergunta baseada na config DA SALA
         const question = await this.getNextQuestion(session);
 
-        return { sessionStr: session._id, question, level: session.nivel_atual, score: session.pontuacao_atual };
+        // Prepara config para o front
+        const configAny = room.config as any;
+        const advancedConfig = {
+            tempo_base: configAny.tempo_base || 0,
+            modo_tempo: configAny.modo_tempo || 'fixo',
+            esconder_nivel_visual: configAny.esconder_nivel_visual || false,
+            exibir_ranking: configAny.exibir_ranking !== undefined ? configAny.exibir_ranking : true,
+            pontuacao_customizada: configAny.pontuacao_customizada || {}
+        };
+
+        return {
+            sessionStr: session._id,
+            question,
+            level: session.nivel_atual,
+            score: session.pontuacao_atual,
+            config: advancedConfig,
+            roomId: room._id
+        };
     }
 
     public async getNextQuestion(session: IPlayerSession) {
@@ -41,7 +59,7 @@ export class GameService {
         const room = await Room.findById(session.roomId);
         if (!room) throw new Error("Sala da sessão não encontrada.");
 
-        const config = room.config; // USA A CONFIG DA SALA, NÃO A GLOBAL
+        const config = room.config as any; // USA A CONFIG DA SALA, NÃO A GLOBAL
         const professorId = room.professorId; // ID do professor que criou a sala
 
         // ... O resto da lógica de buscar questão continua igual, 
@@ -97,20 +115,38 @@ export class GameService {
 
         // CORREÇÃO: Busca a config da SALA, e não a global
         const room = await Room.findById(session.roomId);
-        const config = room?.config;
+        const config = room?.config as any;
         const mode = config?.modo_de_jogo || 'classico';
 
+        const isTimeout = answer === '__TEMPO_ESGOTADO__';
         const isCorrect = question.alternativa_correta === answer;
 
         session.questoes_respondidas.push(question._id as any);
+
+        // Registrar no histórico de respostas
+        session.historico_respostas.push({
+            questionId: question._id as any,
+            enunciado: question.enunciado,
+            resposta_usuario: answer,
+            resposta_correta: question.alternativa_correta,
+            correto: isCorrect
+        });
 
         let feedback = "";
         let gameOver = false;
 
         if (isCorrect) {
-
             feedback = "Correto!";
-            session.pontuacao_atual += (session.nivel_atual * 10);
+
+            // Lógica de Pontuação Customizada
+            let pointsEarned = 0;
+            if (config?.pontuacao_customizada && config.pontuacao_customizada.has(String(session.nivel_atual))) {
+                pointsEarned = Number(config.pontuacao_customizada.get(String(session.nivel_atual)));
+            } else {
+                pointsEarned = session.nivel_atual * 10; // Default
+            }
+
+            session.pontuacao_atual += pointsEarned;
 
             session.rodada_no_nivel++;
             if (session.rodada_no_nivel > 3) {
@@ -124,6 +160,9 @@ export class GameService {
                 feedback = "Parabéns! Você completou o jogo.";
             }
 
+        } else if (isTimeout) {
+            feedback = "Tempo esgotado! A pergunta foi pulada.";
+            // Não penaliza, apenas pula (mantém nível e rodada)
         } else {
             // ERRO
             if (mode === 'classico') {
@@ -131,7 +170,6 @@ export class GameService {
                 gameOver = true;
                 feedback = "Errado! Fim de jogo (Modo Clássico).";
             } else {
-
                 session.erros_cometidos++;
 
                 if (session.erros_cometidos >= 2) {
@@ -144,6 +182,18 @@ export class GameService {
                     session.rodada_no_nivel = 1;
                 }
             }
+        }
+
+        await session.save();
+
+        if (gameOver && config?.exibir_ranking) {
+            const Ranking = (await import('../models/Ranking')).default;
+            await Ranking.create({
+                roomId: session.roomId as any,
+                playerSessionId: session._id as any,
+                nickname: session.nickname,
+                score: session.pontuacao_atual
+            });
         }
 
         await session.save();
@@ -286,6 +336,51 @@ export class GameService {
         await session.save();
 
         return result;
+    }
+
+    async getRanking(roomId: string) {
+        if (!roomId || !mongoose.Types.ObjectId.isValid(roomId)) {
+            return [];
+        }
+
+        // Busca direto da sessão dos jogadores para ser em tempo real
+        const sessions = await PlayerSession.find({ roomId })
+            .sort({ pontuacao_atual: -1 })
+            .limit(10)
+            .select('nickname pontuacao_atual _id status createdAt');
+
+        // Mapeia para o formato que o front espera
+        return sessions.map(session => ({
+            _id: session._id,
+            playerSessionId: session._id,
+            nickname: session.nickname,
+            score: session.pontuacao_atual,
+            status: session.status,
+            completedAt: session.createdAt
+        }));
+    }
+
+    async getSessionDetails(sessionId: string) {
+        const session = await PlayerSession.findById(sessionId);
+        if (!session) throw new Error("Sessão não encontrada.");
+        return {
+            nickname: session.nickname,
+            score: session.pontuacao_atual,
+            historico: session.historico_respostas,
+            status: session.status,
+            completedAt: session.createdAt
+        };
+    }
+
+    async getAllSessionsDetails(roomId: string) {
+        const sessions = await PlayerSession.find({ roomId });
+        return sessions.map(session => ({
+            nickname: session.nickname,
+            score: session.pontuacao_atual,
+            historico: session.historico_respostas,
+            status: session.status,
+            completedAt: session.createdAt
+        }));
     }
 }
 

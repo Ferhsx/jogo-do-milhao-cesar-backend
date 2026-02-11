@@ -26,5 +26,8 @@ router.post('/rooms', verifyToken, admController.createRoom);
 router.post('/game/start', gameController.start);
 router.post('/game/answer', gameController.answer);
 router.post('/game/help', gameController.help);
+router.get('/game/ranking/:roomId', gameController.getRanking);
+router.get('/game/session/:sessionId', gameController.getSessionDetails);
+router.get('/game/room-sessions/:roomId', gameController.getAllSessionsDetails);
 
 export default router;

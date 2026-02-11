@@ -55,6 +55,35 @@ class GameController {
 
         }
     }
+    public getRanking = async (req: Request, res: Response) => {
+        try {
+            const { roomId } = req.params;
+            const ranking = await gameService.getRanking(String(roomId));
+            return res.json(ranking);
+        } catch (error: any) {
+            return res.status(500).json({ message: "Erro ao buscar ranking." });
+        }
+    }
+
+    public getSessionDetails = async (req: Request, res: Response) => {
+        try {
+            const { sessionId } = req.params;
+            const details = await gameService.getSessionDetails(String(sessionId));
+            return res.json(details);
+        } catch (error: any) {
+            return res.status(500).json({ message: "Erro ao buscar detalhes da sessão." });
+        }
+    }
+
+    public getAllSessionsDetails = async (req: Request, res: Response) => {
+        try {
+            const { roomId } = req.params;
+            const allDetails = await gameService.getAllSessionsDetails(String(roomId));
+            return res.json(allDetails);
+        } catch (error: any) {
+            return res.status(500).json({ message: "Erro ao buscar todos os detalhes da sala." });
+        }
+    }
 }
 
 export default new GameController();

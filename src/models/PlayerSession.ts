@@ -14,6 +14,13 @@ export interface IPlayerSession extends Document {
     };
     erros_cometidos: number; // Para modo alternativo
     status: 'em_andamento' | 'vitoria' | 'derrota' | 'desistencia';
+    historico_respostas: {
+        questionId: mongoose.Types.ObjectId;
+        enunciado: string;
+        resposta_usuario: string;
+        resposta_correta: string;
+        correto: boolean;
+    }[];
     createdAt: Date;
 }
 
@@ -24,6 +31,13 @@ const PlayerSessionSchema: Schema = new Schema({
     nivel_atual: { type: Number, default: 1 },
     rodada_no_nivel: { type: Number, default: 1 },
     questoes_respondidas: [{ type: Schema.Types.ObjectId, ref: 'Question' }],
+    historico_respostas: [{
+        questionId: { type: Schema.Types.ObjectId, ref: 'Question' },
+        enunciado: String,
+        resposta_usuario: String,
+        resposta_correta: String,
+        correto: { type: Boolean }
+    }],
     ajudas_usadas: {
         eliminar: { type: Boolean, default: false },
         plateia: { type: Boolean, default: false },
