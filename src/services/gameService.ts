@@ -205,7 +205,6 @@ export class GameService {
             // LOGICA INTELIGENTE: Se não houver perguntas no nível atual, avança para o próximo
             // até encontrar uma pergunta ou chegar no nível máximo.
             while (!nextQuestion && session.nivel_atual < 5) {
-                console.log(`Sem perguntas no nível ${session.nivel_atual}. Avançando para nível ${session.nivel_atual + 1}...`);
                 session.nivel_atual++;
                 session.rodada_no_nivel = 1; // Reseta rodada para o novo nível
 
