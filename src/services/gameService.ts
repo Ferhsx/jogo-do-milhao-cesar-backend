@@ -324,7 +324,7 @@ export class GameService {
 
             const response = await ai.models.generateContent({
                 model: "gemini-2.5-flash",
-                contents: String(question.enunciado) + "\nAlternativas: " + [question.alternativa_correta, ...question.alternativas_incorretas].join(", ") + "\nPor favor, forneça uma explicação detalhada da resposta correta.",
+                contents: String(question.enunciado) + "\nAlternativas: " + [question.alternativa_correta, ...question.alternativas_incorretas].join(", ") + "\nPor favor, forneça a explicação mais curta da resposta correta mas que ainda dê para entender.",
             });
 
             result = { message: response.text };
